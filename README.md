@@ -25,3 +25,7 @@ This is the repository for Milk Bar Launcher. Here you can find all of the proje
 
 # Building the project
 Building the project should not be too complicated and this process can be automated using the [python script](buildWPF.py).
+
+# Usage
+- You can use the project in any way you prefer.
+- You can make any modifications to the project, but you cannot redistribute it unless you have modified a substantial portion of the project's code. Modification to non functional parts of the code, do not count as code modification.
