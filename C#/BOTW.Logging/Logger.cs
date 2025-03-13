@@ -65,7 +65,22 @@
                 if (!Directory.Exists(LogsFolder))
                     Directory.CreateDirectory(LogsFolder);
 
-                File.Move(LogPath, $"{LogsFolder}\\{creationTime}.txt");
+                string postName = "";
+
+                // The correct way to manage a log file already existing is by creating a differently named log file
+                if(File.Exists($"{LogsFolder}\\{creationTime}.txt"))
+                    postName = $"({Directory.GetFiles(LogsFolder).Where(file => Path.GetFileNameWithoutExtension(file).StartsWith(creationTime)).Count()})";
+
+                if (!File.Exists($"{LogsFolder}\\{creationTime}{postName}.txt"))
+                {
+                    File.Move(LogPath, $"{LogsFolder}\\{creationTime}{postName}.txt");
+                }
+                else
+                {
+                    // If for some reason, even after naming the file differently, it fails. Here we can delete it.
+                    Console.WriteLine($"Failed to create file at: {LogsFolder}\\{creationTime}{postName}.txt. Deleting it...");
+                    File.Delete(LogPath);
+                }
             }
 
             File.CreateText(LogPath);
@@ -83,15 +98,22 @@
 
             logMutex.WaitOne(100);
 
-            using (StreamWriter LogFile = new StreamWriter(LogPath, true))
+            try
             {
-                LogFile.Write($"[{MessageTime}] {message}");
+                using (StreamWriter LogFile = new StreamWriter(LogPath, true))
+                {
+                    LogFile.Write($"[{MessageTime}] {message}");
 
-                if (!string.IsNullOrEmpty(details))
-                    LogFile.Write($" - Details: {details}");
+                    if (!string.IsNullOrEmpty(details))
+                        LogFile.Write($" - Details: {details}");
 
-                if(newLine)
-                    LogFile.WriteLine();
+                    if (newLine)
+                        LogFile.WriteLine();
+                }
+            }
+            catch(Exception ex)
+            {
+                WriteToConsole(LogWriteLevelEnum.ERR, "\nCould not write to log file. Please make sure that you don't have another server process and restart your server.", MessageTime, ConsoleColor.DarkRed, true);
             }
 
             logMutex.ReleaseMutex();

@@ -30,14 +30,11 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
 
         public static void ChangeAttentionForJugadores(bool enabled)
         {
-            // Get bcml mod path to save data in that folder
-            string bcmlPath = Properties.Settings.Default.bcmlLocation.Replace("settings.json", @"merged\content");
-
             List<Tuple<ISarcFile, AampLibAction>> filesToModify = new List<Tuple<ISarcFile, AampLibAction>>();
 
             List<ActorPack> jugadores = new List<ActorPack>();
 
-            foreach (string path in Directory.GetFiles(@$"{bcmlPath}\Actor\Pack\").Where(file => Path.GetFileName(file).StartsWith("Jugador")))
+            foreach (string path in Directory.GetFiles(@$"{BcmlSettings.MergedDir}\Actor\Pack\").Where(file => Path.GetFileName(file).StartsWith("Jugador")))
             {
                 ActorPack jugador = new ActorPack(path);
                 ActorLink actorLinkFile = jugador.ActorLink.Files()[0];
@@ -60,15 +57,9 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             /* Obtaining the data */
-            // Get game folders so that we can extract the armors and files
-            string CemuSettings = File.ReadAllText(Properties.Settings.Default.bcmlLocation);
-            Dictionary<string, string> settings = JsonConvert.DeserializeObject<Dictionary<string, string>>(CemuSettings)!;
-            string GameDir = settings["game_dir"];
-            string UpdateDir = settings["update_dir"];
-
             // Get bcml mod path to save data in that folder
             string bcmlPath = Properties.Settings.Default.bcmlLocation.Replace("settings.json", @"merged\content");
-            string titleBGPath = @$"{UpdateDir}\Pack\TitleBG.pack";
+            string titleBGPath = @$"{BcmlSettings.UpdateDir}\Pack\TitleBG.pack";
 
             /* Instantiate objects */
             // Create title bg object and load it's data
@@ -78,7 +69,7 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
             List<Model> totalModels = new List<Model>();
 
             /* Get armor models */
-            foreach (string path in Directory.GetFiles(@$"{UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && !file.Contains("Tex")))
+            foreach (string path in Directory.GetFiles(@$"{BcmlSettings.UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && !file.Contains("Tex")))
             {
                 BfresFile armorFile = new BfresFile(new MemoryStream(Yaz0.Decompress(File.ReadAllBytes(path))));
 
@@ -140,15 +131,7 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
         public static void CreateModifiedModel()
         {
             /* Obtaining the data */
-            // Get game folders so that we can extract the armors and files
-            string CemuSettings = File.ReadAllText(Properties.Settings.Default.bcmlLocation);
-            Dictionary<string, string> settings = JsonConvert.DeserializeObject<Dictionary<string, string>>(CemuSettings)!;
-            string GameDir = settings["game_dir"];
-            string UpdateDir = settings["update_dir"];
-
-            // Get bcml mod path to save data in that folder
-            string bcmlPath = Properties.Settings.Default.bcmlLocation.Replace("settings.json", @"merged\content");
-            string titleBGPath = @$"{UpdateDir}\Pack\TitleBG.pack";
+            string titleBGPath = @$"{BcmlSettings.UpdateDir}\Pack\TitleBG.pack";
 
             /* Instantiate objects */
             // Create title bg object and load it's data
@@ -158,7 +141,7 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
             /************ Player model ************/
             /* Modify Link models */
             // Create outputModel
-            if(!File.Exists($@"{bcmlPath}/Model/Jugador1ModelNameLongForASpecificReason.sbfres"))
+            if(!File.Exists($@"{BcmlSettings.MergedDir}/Model/Jugador1ModelNameLongForASpecificReason.sbfres"))
             {
                 byte[] LinkDecompressed = Yaz0.Decompress(titleBG.LoadedData["Model/Link.sbfres"].ToArray());
                 BfresFile outputModel = new BfresFile(new MemoryStream(LinkDecompressed));
@@ -184,7 +167,7 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
                 outputModel.Models[2].Shapes.Clear();
 
                 /* Get armor models */
-                foreach (string path in Directory.GetFiles(@$"{UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && !file.Contains("Tex")))
+                foreach (string path in Directory.GetFiles(@$"{BcmlSettings.UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && !file.Contains("Tex")))
                 {
                     BfresFile armorFile = new BfresFile(new MemoryStream(Yaz0.Decompress(File.ReadAllBytes(path))));
 
@@ -211,18 +194,18 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
                     outputModel.ToBinary(ms);
                 }
 
-                File.WriteAllBytes($@"{bcmlPath}/Model/Jugador1ModelNameLongForASpecificReason.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
+                File.WriteAllBytes($@"{BcmlSettings.MergedDir}/Model/Jugador1ModelNameLongForASpecificReason.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
             }
 
             /************ Player textures ************/
             /* Modify Link's tex1 file */
-            if(!File.Exists($@"{bcmlPath}/Model/Jugador1ModelNameLongForASpecificReason.Tex1.sbfres"))
+            if(!File.Exists($@"{BcmlSettings.MergedDir}/Model/Jugador1ModelNameLongForASpecificReason.Tex1.sbfres"))
             {
-                byte[] LinkDecompressed = Yaz0.Decompress(File.ReadAllBytes($@"{GameDir}\Model\Link.Tex1.sbfres"));
+                byte[] LinkDecompressed = Yaz0.Decompress(File.ReadAllBytes($@"{BcmlSettings.GameDir}\Model\Link.Tex1.sbfres"));
                 BfresFile outputTexture = new BfresFile(new MemoryStream(LinkDecompressed));
 
                 /* Get armor models from game dir*/
-                foreach (string path in Directory.GetFiles(@$"{GameDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && file.Contains("Tex1")))
+                foreach (string path in Directory.GetFiles(@$"{BcmlSettings.GameDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && file.Contains("Tex1")))
                 {
                     BfresFile armorFile = new BfresFile(new MemoryStream(Yaz0.Decompress(File.ReadAllBytes(path))));
 
@@ -233,7 +216,7 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
                 }
 
                 /* Get armor models from update dir*/
-                foreach (string path in Directory.GetFiles(@$"{UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && file.Contains("Tex1")))
+                foreach (string path in Directory.GetFiles(@$"{BcmlSettings.UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && file.Contains("Tex1")))
                 {
                     BfresFile armorFile = new BfresFile(new MemoryStream(Yaz0.Decompress(File.ReadAllBytes(path))));
 
@@ -250,17 +233,17 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
                     outputTexture.ToBinary(ms);
                 }
 
-                File.WriteAllBytes($@"{bcmlPath}/Model/Jugador1ModelNameLongForASpecificReason.Tex1.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
+                File.WriteAllBytes($@"{BcmlSettings.MergedDir}/Model/Jugador1ModelNameLongForASpecificReason.Tex1.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
             }
 
             /* Modify Link's tex2 file */
-            if (!File.Exists($@"{bcmlPath}/Model/Jugador1ModelNameLongForASpecificReason.Tex2.sbfres"))
+            if (!File.Exists($@"{BcmlSettings.MergedDir}/Model/Jugador1ModelNameLongForASpecificReason.Tex2.sbfres"))
             {
                 byte[] LinkDecompressed = Yaz0.Decompress(titleBG.LoadedData["Model/Link.Tex2.sbfres"].ToArray());
                 BfresFile outputTexture = new BfresFile(new MemoryStream(LinkDecompressed));
 
                 /* Get armor models */
-                foreach (string path in Directory.GetFiles(@$"{UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && file.Contains("Tex2")))
+                foreach (string path in Directory.GetFiles(@$"{BcmlSettings.UpdateDir}\Model\").Where(file => Path.GetFileName(file).StartsWith("Armor_") && file.Contains("Tex2")))
                 {
                     BfresFile armorFile = new BfresFile(new MemoryStream(Yaz0.Decompress(File.ReadAllBytes(path))));
 
@@ -285,7 +268,7 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
                     outputTexture.ToBinary(ms);
                 }
 
-                File.WriteAllBytes($@"{bcmlPath}/Model/Jugador1ModelNameLongForASpecificReason.Tex2.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
+                File.WriteAllBytes($@"{BcmlSettings.MergedDir}/Model/Jugador1ModelNameLongForASpecificReason.Tex2.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
             }
         }
 
@@ -335,17 +318,10 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
         public static void CleanAnimations()
         {
             /* Obtaining the data */
-            // Get game folders so that we can extract the armors and files
-            string CemuSettings = File.ReadAllText(Properties.Settings.Default.bcmlLocation);
-            Dictionary<string, string> settings = JsonConvert.DeserializeObject<Dictionary<string, string>>(CemuSettings)!;
-            string GameDir = settings["game_dir"];
 
-            // Get bcml mod path to save data in that folder
-            string bcmlPath = Properties.Settings.Default.bcmlLocation.Replace("settings.json", @"merged\content");
-
-            if (!File.Exists($@"{bcmlPath}/Model/Player_Animation_NoFace.sbfres"))
+            if (!File.Exists($@"{BcmlSettings.MergedDir}/Model/Player_Animation_NoFace.sbfres"))
             {
-                var res = new BfresFile(new MemoryStream(Yaz0.Decompress(File.ReadAllBytes($@"{GameDir}\Model\Player_Animation.sbfres"))));
+                var res = new BfresFile(new MemoryStream(Yaz0.Decompress(File.ReadAllBytes($@"{BcmlSettings.GameDir}\Model\Player_Animation.sbfres"))));
                 res.Name = "Player_Animation_NoFace";
 
                 List<string> bannedBones = new List<string>() {
@@ -372,31 +348,15 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
                     res.ToBinary(ms);
                 }
 
-                File.WriteAllBytes($@"{bcmlPath}/Model/Player_Animation_NoFace.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
+                File.WriteAllBytes($@"{BcmlSettings.MergedDir}/Model/Player_Animation_NoFace.sbfres", Yaz0.Compress(ms.ToArray()).ToArray());
             }
-        }
-
-        public static void WrapperTests()
-        {
-            //string bcmlPath = Properties.Settings.Default.bcmlLocation.Replace("settings.json", "merged\\content");
-
-            //string titleBGPath = $"{bcmlPath}\\Pack\\TitleBG.pack";
-
-            //TitleBG titleBG = new TitleBG(titleBGPath);
-            //ActorPack gameRomPlayer = titleBG.Actor.Pack.Actors.File("GameROMPlayer");
-
-            //gameRomPlayer.ModelList.File("Player_Link").LoadedData.ModifyModel("TestNew", "Link");
-            //gameRomPlayer.ASList.File("Player").LoadedData.ModifyAnimation(true);
-
-            //titleBG.Save(true);
         }
 
         public static void ModifyGameROMPlayerModel(string folder, string model, bool isNotLink, string bumiiPath = null)
         {
             List<Tuple<ISarcFile, AampLibAction>> filesToModify = new List<Tuple<ISarcFile, AampLibAction>>();
 
-            string bcmlPath = Properties.Settings.Default.bcmlLocation.Replace("settings.json", @"merged\content");
-            string titleBGPath = @$"{bcmlPath}\Pack\TitleBG.pack";
+            string titleBGPath = @$"{BcmlSettings.MergedDir}\Pack\TitleBG.pack";
 
             TitleBG titleBG = new TitleBG(titleBGPath);
             ActorPack gameRomPlayer = titleBG.Actor.Pack.Actors.File("GameROMPlayer");
@@ -426,13 +386,13 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
             filesToModify.Add(titleBG.Actor.Pack.Actors.File("Armor_Default_Extra_00").ModelList.Files()[0].ModifyModel(armorFolder, armorModelBase.Replace("##", "00")));
             filesToModify.Add(titleBG.Actor.Pack.Actors.File("Armor_Default_Extra_01").ModelList.Files()[0].ModifyModel(armorFolder, armorModelBase.Replace("##", "01")));
 
-            ActorPack pauseMenuActor = new ActorPack(@$"{bcmlPath}\Actor\Pack\PauseMenuPlayer.sbactorpack");
+            ActorPack pauseMenuActor = new ActorPack(@$"{BcmlSettings.MergedDir}\Actor\Pack\PauseMenuPlayer.sbactorpack");
             filesToModify.Add(pauseMenuActor.ModelList.Files()[0].ModifyModel(folder, model));
             filesToModify.Add(pauseMenuActor.ASList.Files()[0].ModifyAnimation(isNotLink));
 
             List<ActorPack> armors = new List<ActorPack>();
 
-            foreach (string path in Directory.GetFiles(@$"{bcmlPath}\Actor\Pack\").Where(file => Path.GetFileName(file).StartsWith("Armor_")))
+            foreach (string path in Directory.GetFiles(@$"{BcmlSettings.MergedDir}\Actor\Pack\").Where(file => Path.GetFileName(file).StartsWith("Armor_")))
             {
                 ActorPack armorActor = new ActorPack(path);
                 ModelList modelListFile = armorActor.ModelList.Files()[0];

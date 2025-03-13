@@ -2,6 +2,8 @@ import subprocess
 from shutil import copy, rmtree, copytree
 import os
 
+# Make sure to have msbuild in your PATH
+
 abovePath = "\\".join(os.getcwd().split("\\")[:-1])
 
 WPFProject = r"WPF .NET 6\Breath of the Wild Multiplayer"

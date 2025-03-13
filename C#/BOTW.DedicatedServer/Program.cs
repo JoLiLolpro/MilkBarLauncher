@@ -13,7 +13,7 @@ try
 #if (DEBUG)
     Console.WriteLine("DEV");
 #else
-    Console.WriteLine("DEV 2.0");
+    Console.WriteLine("2.0.1");
 #endif
 
     Console.WriteLine();

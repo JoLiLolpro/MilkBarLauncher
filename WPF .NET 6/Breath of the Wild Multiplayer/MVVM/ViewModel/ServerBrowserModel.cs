@@ -10,6 +10,7 @@ using Breath_of_the_Wild_Multiplayer.MVVM.Model.DTO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
+using System.Xml;
 
 namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
 {
@@ -61,10 +62,23 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
             }
         }
 
+        public bool IsModInstalled
+        {
+            get
+            {
+                string modActorsPack = $@"{BcmlSettings.MergedDir}\Actor\Pack";
+
+                // If the directory for the directory doesn't even exist. That is a clear indicator that the mod is not installed
+                if (!Directory.Exists(modActorsPack))
+                    return false;
+                // One of the unique assets created by the mod are the actors called JugadorXX.sbactorpack.
+                // If we don't have any Jugador, that means the mod is not installed.
+                return Directory.GetFiles(modActorsPack).Any(actor => actor.Contains("Jugador") && Path.GetExtension(actor) == ".sbactorpack");
+            }
+        }
+
         private Dictionary<int, LocalServerDTO> ServerMapping;
 
-        private string GameDir;
-        private string CemuDir;
         public List<LocalServerDTO> ServerList;
 
         public RelayCommand serverButtonClick { get; set; }
@@ -79,7 +93,7 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
         {
             SharedData.ServerBrowser = this;
 
-            findCemuData();
+            //findCemuData();
             isMaxOffset = true;
             scrollState = 0;
 
@@ -129,13 +143,13 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
 
             foreach (var server in this.ServerList.Where(sv => sv.Favorite))
             {
-                serversToShow.Add(new serverDataModel(!string.IsNullOrEmpty(GameDir) && !string.IsNullOrEmpty(CemuDir), name: server.Name, ip: server.IP, port: server.Port, favorite: server.Favorite, password: server.Password));
+                serversToShow.Add(new serverDataModel(!string.IsNullOrEmpty(BcmlSettings.GameDir) && !string.IsNullOrEmpty(BcmlSettings.CemuDir), name: server.Name, ip: server.IP, port: server.Port, favorite: server.Favorite, password: server.Password));
                 ServerMapping[serverDataModel.serversAdded - 1] = server;
             }
 
             foreach (var server in this.ServerList.Where(sv => !sv.Favorite))
             {
-                serversToShow.Add(new serverDataModel(!string.IsNullOrEmpty(GameDir) && !string.IsNullOrEmpty(CemuDir), name: server.Name, ip: server.IP, port: server.Port, favorite: server.Favorite, password: server.Password));
+                serversToShow.Add(new serverDataModel(!string.IsNullOrEmpty(BcmlSettings.GameDir) && !string.IsNullOrEmpty(BcmlSettings.CemuDir), name: server.Name, ip: server.IP, port: server.Port, favorite: server.Favorite, password: server.Password));
                 ServerMapping[serverDataModel.serversAdded - 1] = server;
             }
 
@@ -143,7 +157,7 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
 
             if (_serversToShow.Count == 0)
             {
-                selectedServer.Add(new serverDataModel(!string.IsNullOrEmpty(GameDir) && !string.IsNullOrEmpty(CemuDir), name: "", ip: "", port: 0, favorite: false, password: ""));
+                selectedServer.Add(new serverDataModel(!string.IsNullOrEmpty(BcmlSettings.GameDir) && !string.IsNullOrEmpty(BcmlSettings.CemuDir), name: "", ip: "", port: 0, favorite: false, password: ""));
             }
             else
             {
@@ -153,21 +167,21 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
             }
         }
 
-        void findCemuData()
-        {
-            try
-            {
-                string CemuSettings = File.ReadAllText(Properties.Settings.Default.bcmlLocation);
-                Dictionary<string, string> settings = JsonConvert.DeserializeObject<Dictionary<string, string>>(CemuSettings)!;
-                CemuDir = settings["cemu_dir"];
-                GameDir = settings["game_dir"];
-            }
-            catch(Exception ex)
-            {
-                CemuDir = "";
-                GameDir = "";
-            }
-        }
+        //void findCemuData()
+        //{
+        //    try
+        //    {
+        //        string CemuSettings = File.ReadAllText(Properties.Settings.Default.bcmlLocation);
+        //        Dictionary<string, string> settings = JsonConvert.DeserializeObject<Dictionary<string, string>>(CemuSettings)!;
+        //        CemuDir = settings["cemu_dir"];
+        //        GameDir = settings["game_dir"];
+        //    }
+        //    catch(Exception ex)
+        //    {
+        //        CemuDir = "";
+        //        GameDir = "";
+        //    }
+        //}
 
         async Task connectToServer(serverDataModel serverToJoin = null)
         {
@@ -176,8 +190,43 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
             if (serverToJoin == null)
                 serverToJoin = _selectedServer[0];
 
-            if (string.IsNullOrEmpty(GameDir) || string.IsNullOrEmpty(CemuDir))
+            if (string.IsNullOrEmpty(BcmlSettings.GameDir) || string.IsNullOrEmpty(BcmlSettings.CemuDir))
                 throw new ApplicationException("Bcml not setup.");
+
+            if (!IsModInstalled)
+                throw new ApplicationException("Mod is not setup on BCML. Make sure to follow the instructions to install the mod.");
+
+            string cemuSettingsPath = Path.Combine(BcmlSettings.CemuDir, "settings.xml");
+
+            // Does the settings file for cemu exist?
+            if (!File.Exists(cemuSettingsPath))
+                throw new ApplicationException("Cemu settings file doesn't exist. Make sure to have open cemu and setup the graphic packs");
+
+            XmlDocument doc = new XmlDocument();
+            doc.Load(cemuSettingsPath);
+
+            XmlNode GraphicPacksNode = doc.DocumentElement.SelectSingleNode("/content/GraphicPack");
+
+            Dictionary<string, string> nodesToValidate = new Dictionary<string, string>() {
+                {"  · Utilities", "bcmlPatches\\MilkBarLauncher\\rules.txt"},
+                {"  · Extended Memory", "BreathOfTheWild\\Mods\\ExtendedMemory\\rules.txt" }
+            };
+
+            List<string> missingGraphicPacks = new List<string>();
+
+            try
+            {
+                missingGraphicPacks = nodesToValidate
+                                        .Where(sNode => !GraphicPacksNode.ChildNodes.Cast<XmlNode>().Any(node => node.Attributes.Cast<XmlAttribute>().Any(attribute => attribute.Value.Contains(sNode.Value)))).Select(sNode => sNode.Key).ToList();
+            }
+            catch(Exception ex)
+            {
+                // If any issue happened while reading settings xml.
+                throw new ApplicationException("Failed to read cemu graphic packs settings. Please make sure that your cemu is setup correctly.");
+            }
+
+            if(missingGraphicPacks.Any())
+                throw new ApplicationException("The following needed graphic packs are not selected on Cemu\n\n" + string.Join("\n", missingGraphicPacks) + "\n\nPlease make sure to select them before joining a server.");
 
             if (string.IsNullOrEmpty(serverToJoin.IP) || !serverToJoin.open)
                 return;
@@ -195,6 +244,8 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
             CharacterModel charModel = JsonConvert.DeserializeObject<CharacterModel>(Properties.Settings.Default.playerModel);
 
             SharedData.SetLoadingMessage("Loading player data...");
+
+            await Task.Run(() => GameFilesModifier.CreateModifiedModel());
 
             await Task.Run(() => GameFilesModifier.ChangeAttentionForJugadores(serverToJoin.playStyle != "Prop hunt"));
 
@@ -234,7 +285,7 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
 
             SharedData.SetLoadingMessage("Starting Cemu...");
 
-            await Task.Run(() => Process.Start($"{CemuDir}/cemu.exe", $"-g \"{GameDir.Replace("content", "code")}/U-King.rpx\""));
+            await Task.Run(() => Process.Start($"{BcmlSettings.CemuDir}/cemu.exe", $"-g \"{BcmlSettings.GameDir.Replace("content", "code")}/U-King.rpx\""));
 
             await Task.Delay(500);
 
@@ -329,7 +380,7 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
 
                 this.ServerList.Add(serverToAdd);
 
-                this.serversToShow.Add(new serverDataModel(!string.IsNullOrEmpty(GameDir) && !string.IsNullOrEmpty(CemuDir), name: serverinfo.name, ip: serverinfo.ip, port: Int32.Parse(serverinfo.port), favorite: false, password: serverinfo.password));
+                this.serversToShow.Add(new serverDataModel(!string.IsNullOrEmpty(BcmlSettings.GameDir) && !string.IsNullOrEmpty(BcmlSettings.CemuDir), name: serverinfo.name, ip: serverinfo.ip, port: Int32.Parse(serverinfo.port), favorite: false, password: serverinfo.password));
                 this.ServerMapping[serverDataModel.serversAdded - 1] = serverToAdd;
                 changeSelected(this._serversToShow.Count - 1);
 
@@ -337,7 +388,7 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
             }
             else if(serverinfo.serverIndex == -2)
             {
-                serverDataModel serverToconnect = new serverDataModel(!string.IsNullOrEmpty(GameDir) && !string.IsNullOrEmpty(CemuDir), name: serverinfo.name, ip: serverinfo.ip, port: Int32.Parse(serverinfo.port), favorite: false, password: serverinfo.password, async: false);
+                serverDataModel serverToconnect = new serverDataModel(!string.IsNullOrEmpty(BcmlSettings.GameDir) && !string.IsNullOrEmpty(BcmlSettings.CemuDir), name: serverinfo.name, ip: serverinfo.ip, port: Int32.Parse(serverinfo.port), favorite: false, password: serverinfo.password, async: false);
 
                 if (!serverToconnect.open)
                     throw new Exception("Could not connect to server. Check if the server is open.");

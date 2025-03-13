@@ -117,7 +117,6 @@ namespace Breath_of_the_Wild_Multiplayer.MVVM.ViewModel
             this.IngameMenuVM = new IngameMenuModel();
             SharedData.LoadingMessage = new LoadingModel();
             this.disableBackground = false;
-            GameFilesModifier.CreateModifiedModel();
 
             currentView = this.MainMenuVM;
 
