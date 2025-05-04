@@ -15,7 +15,7 @@ namespace Breath_of_the_Wild_Multiplayer.Source_files
 
         public static void StartServer()
         {
-            _server = new NamedPipeServerStream(@"languageConnectionPipe", PipeDirection.InOut, 2, PipeTransmissionMode.Message);
+            _server = new NamedPipeServerStream(@"languageConnectionPipe", PipeDirection.InOut, 10, PipeTransmissionMode.Message);
             _server.WaitForConnectionWithTimeout(5);
             Online = true;
         }
